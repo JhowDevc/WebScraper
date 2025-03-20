@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Web Scraper</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>Web Scraper</h1>
+    <form id="scrapeForm">
+      <input type="text" id="urlInput" placeholder="Insira a URL do site" required>
+      <button type="submit" id="scrapeButton">
+        Pesquisar
+        <span class="loader" id="loader"></span>
+      </button>
+    </form>
+    <div id="results">
+      <h2>Resultados</h2>
+      <p><strong>Título da Página:</strong> <span id="pageTitle"></span></p>
+      <p><strong>Metadescrição:</strong> <span id="metaDescription"></span></p>
+      <p><strong>Contagem de Palavras:</strong> <span id="wordCount"></span></p>
+      <p><strong>URL Canônica:</strong> <span id="canonical"></span></p>
+      <p><strong>Meta Robots:</strong> <span id="robots"></span></p>
+      <p><strong>Imagens (Texto Alt e Links):</strong></p>
+      <ul id="altTextsWithLinks"></ul>
+      <p><strong>Títulos na Página:</strong></p>
+      <ul id="headings"></ul>
+      <p><strong>Links Internos:</strong></p>
+      <ul id="internalLinks"></ul>
+      <p><strong>Links Externos:</strong></p>
+      <ul id="externalLinks"></ul>
+      <p><strong>Dados Estruturados (Schema):</strong> <pre id="schemaData"></pre></p>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('scrapeForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const url = document.getElementById('urlInput').value;
+      const button = document.getElementById('scrapeButton');
+      const loader = document.getElementById('loader');
+
+      // Ativa a animação de carregamento
+      button.disabled = true;
+      button.classList.add('loading');
+      loader.style.display = 'inline-block';
+
+      try {
+        const response = await fetch('/scrape', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url }),
+        });
+        const data = await response.json();
+
+        // Exibe os resultados
+        document.getElementById('pageTitle').textContent = data.pageTitle;
+        document.getElementById('metaDescription').textContent = data.metaDescription;
+        document.getElementById('wordCount').textContent = data.wordCount;
+        document.getElementById('canonical').textContent = data.canonical;
+        document.getElementById('robots').textContent = data.robots;
+
+        const altList = document.getElementById('altTextsWithLinks');
+        altList.innerHTML = '';
+        data.altTextsWithLinks.forEach(item => {
+          const li = document.createElement('li');
+          li.innerHTML = `<strong>Alt:</strong> ${item.alt} | <strong>Link:</strong> <a href="${item.src}" target="_blank">${item.src}</a>`;
+          altList.appendChild(li);
+        });
+
+        const headingsList = document.getElementById('headings');
+        headingsList.innerHTML = '';
+        data.headings.forEach(heading => {
+          const li = document.createElement('li');
+          li.textContent = `${heading.tag.toUpperCase()}: ${heading.text}`;
+          headingsList.appendChild(li);
+        });
+
+        const internalLinksList = document.getElementById('internalLinks');
+        internalLinksList.innerHTML = '';
+        data.internalLinks.forEach(link => {
+          const li = document.createElement('li');
+          li.innerHTML = `<strong>Texto:</strong> ${link.text} | <strong>Link:</strong> <a href="${link.href}" target="_blank">${link.href}</a>`;
+          internalLinksList.appendChild(li);
+        });
+
+        const externalLinksList = document.getElementById('externalLinks');
+        externalLinksList.innerHTML = '';
+        data.externalLinks.forEach(link => {
+          const li = document.createElement('li');
+          li.innerHTML = `<strong>Texto:</strong> ${link.text} | <strong>Link:</strong> <a href="${link.href}" target="_blank">${link.href}</a>`;
+          externalLinksList.appendChild(li);
+        });
+
+        document.getElementById('schemaData').textContent = data.schemaData;
+
+        document.getElementById('results').classList.add('active');
+      } catch (error) {
+        console.error('Erro:', error);
+        alert('Ocorreu um erro ao raspar o site.');
+      } finally {
+        // Desativa a animação de carregamento
+        button.disabled = false;
+        button.classList.remove('loading');
+        loader.style.display = 'none';
+      }
+    });
+  </script>
+</body>
+</html>
